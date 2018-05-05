@@ -1,5 +1,13 @@
 [
     {
+        "name":"codal-microbot",
+        "info":"This target specifies the Microbot which is driven by an NRF52.",
+        "device_url":"",
+        "url":"https://github.com/janekm/codal-microbot",
+        "branch":"master",
+        "type":"git"
+    },
+    {
         "name":"codal-arduino-uno",
         "info":"This target specifies the arduino uno which is driven by an atmega328p.",
         "device_url":"https://store.arduino.cc/arduino-uno-rev3",
