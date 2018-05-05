@@ -62,6 +62,8 @@ def update():
         system("git checkout " + ln['branch'])
         system("git pull")
     os.chdir(dirname + "/libraries/" + targetdir)
+    if "HEAD detached" in os.popen('git branch').read().strip():
+        system("git checkout master")
     system("git pull")
     os.chdir(dirname)
 
@@ -81,6 +83,8 @@ def status():
     printstatus()
 
 def get_next_version(options):
+    if options.version:
+        return options.version
     log = os.popen('git log -n 100').read().strip()
     m = re.search('Snapshot v(\d+)\.(\d+)\.(\d+)(-([\w\-]+).(\d+))?', log)
     if m is None:
