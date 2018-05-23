@@ -184,17 +184,6 @@ void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
     ble.gap().startAdvertising();    
 }
  
-//DynamicPwm led(p20);
-DynamicPwm bin1(p9);
-DynamicPwm bin2(p12);
-//DynamicPwm din1(p4);
-//DynamicPwm din2(p6);
-//DynamicPwm cin1(p11);
-//DynamicPwm cin2(p10);
-//mbed::Serial pc(p22, p23, 38400);
-
-//mbed::I2C i2c(p27, p28);
-
 LEDArray ledArray(microbot.i2c, microbot.io.i2cAD2);
 VL53L0X distanceA(microbot.i2c);
 /**
@@ -209,88 +198,6 @@ void idleCallback(Event evt)
     //DMESG("idle");
     //microbot_dmesg_flush();
     blei.processEvents();
-}
-
-
-
-#define PCA_ADDR 0xB0
-
-#define PCA9685_SUBADR1 0x2
-#define PCA9685_SUBADR2 0x3
-#define PCA9685_SUBADR3 0x4
-
-#define PCA9685_MODE1 0x0
-#define PCA9685_PRESCALE 0xFE
-
-#define LED0_ON_L 0x6
-#define LED0_ON_H 0x7
-#define LED0_OFF_L 0x8
-#define LED0_OFF_H 0x9
-
-#define ALLLED_ON_L 0xFA
-#define ALLLED_ON_H 0xFB
-#define ALLLED_OFF_L 0xFC
-#define ALLLED_OFF_H 0xFD
-
-
-char read8(char reg) {
-  char buffer[1];
-  buffer[0] = reg;
-  microbot.i2c.write(PCA_ADDR, buffer, 1, true);
-  microbot.i2c.read(PCA_ADDR, buffer, 1);
-  return buffer[0];
-}
-
-void write8(char reg, char d) {
-  char buffer[2];
-  buffer[0] = reg;
-  buffer[1] = d;
-  microbot.i2c.write(PCA_ADDR, buffer, 2);
-}
-
-
-void setPWM(uint8_t num, uint16_t on, uint16_t off) {
-  //Serial.print("Setting PWM "); Serial.print(num); Serial.print(": "); Serial.print(on); Serial.print("->"); Serial.println(off);
-  char buffer[5];
-  buffer[0] = LED0_ON_L+4*num;
-  buffer[1] = on & 0xFF;
-  buffer[2] = on >> 8;
-  buffer[3] = off & 0xFF;
-  buffer[4] = off >> 8;
-
-  microbot.i2c.write(PCA_ADDR, buffer, 5);
-}
-
-void setPin(uint8_t num, uint16_t val, bool invert)
-{
-  // Clamp value between 0 and 4095 inclusive.
-  val = min(val, 4095);
-  if (invert) {
-    if (val == 0) {
-      // Special value for signal fully on.
-      setPWM(num, 4096, 0);
-    }
-    else if (val == 4095) {
-      // Special value for signal fully off.
-      setPWM(num, 0, 4096);
-    }
-    else {
-      setPWM(num, 0, 4095-val);
-    }
-  }
-  else {
-    if (val == 4095) {
-      // Special value for signal fully on.
-      setPWM(num, 4096, 0);
-    }
-    else if (val == 0) {
-      // Special value for signal fully off.
-      setPWM(num, 0, 4096);
-    }
-    else {
-      setPWM(num, 0, val);
-    }
-  }
 }
 
 void buttonCallback(Event evt)
@@ -311,33 +218,39 @@ void buttonCallback(Event evt)
     }
 }
 
-void setPWMFreq(float freq) {
-  //Serial.print("Attempting to set freq ");
-  //Serial.println(freq);
-  freq *= 0.9;  // Correct for overshoot in the frequency setting (see issue #11).
-  float prescaleval = 25000000;
-  prescaleval /= 4096;
-  prescaleval /= freq;
-  prescaleval -= 1;
-  char prescale = floor(prescaleval + 0.5);
+#define MAX_X 15
+#define MAX_Y 8
 
-  
-  char oldmode = read8(PCA9685_MODE1);
-  //setLED(1, oldmode, 0, 0);
-  //updateLED();
-  char newmode = (oldmode&0x7F) | 0x10; // sleep
-  write8(PCA9685_MODE1, newmode); // go to sleep
-  write8(PCA9685_PRESCALE, prescale); // set the prescaler
-  write8(PCA9685_MODE1, oldmode);
-  microbot.sleep(5);
-  write8(PCA9685_MODE1, oldmode | 0xa1);  //  This sets the MODE1 register to turn on auto increment.
-                                          // This is why the beginTransmission below was not working.
-  //  Serial.print("Mode now 0x"); Serial.println(read8(PCA9685_MODE1), HEX);
-}
+#define FRAME_SLEEP 1000
 
-
+int snake_x = 4;
+int snake_y = 4;
+int snake_direction = 0;
+void 
 
 #define VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS                0x008a
+
+
+bool check_collision(void) {
+    
+}
+
+void advance_snake(void) {
+    switch(snake_direction) {
+        case 0:
+            snake_x += 1;
+            break;
+        case 1:
+            snake_y += 1;
+            break;
+        case 2:
+            snake_x -= 1;
+            break;
+        case 3:
+            snake_y -= 1;
+            break;
+    }
+}
 
 int main()
 {
@@ -349,12 +262,6 @@ int main()
     microbot.io.led.setDigitalValue(1);
     printf("Hello World\r\n");
     microbot.i2c.frequency(400000);
-
-
-    write8(PCA9685_MODE1, 0x00);
-    setPWMFreq(60.0);
-    //for (int i=0; i < 16; i++) {
-    //setPin(7, 330, false);
 
     microbot.messageBus.listen(DEVICE_ID_SCHEDULER, DEVICE_SCHEDULER_EVT_IDLE, &idleCallback, MESSAGE_BUS_LISTENER_IMMEDIATE);
     microbot.messageBus.listen(DEVICE_ID_BUTTON_A, DEVICE_EVT_ANY, &buttonCallback);
@@ -370,77 +277,11 @@ int main()
     }
     
     DMESG("has inited\r\n");
-    //while(true) {
-        //blei.waitForEvent();
-    //    microbot.sleep(10);
-    //};
-    bin1.setPeriodUs(50);
-    bin2.setPeriodUs(50);
-    //din1.setPeriodUs(50);
-    //din2.setPeriodUs(50);
-    //cin1.setPeriodUs(50);
-    //cin2.setPeriodUs(50);
-    bin2.write(0.6);
-    bin1.write(0.0);
-    //cin2.write(0.6);
-    //cin1.write(0.0);
-    //din2.write(0.6);
-    //din1.write(0.0);
+
     microbot.io.i2cAD1.setDigitalValue(1);
     microbot.io.i2cAD2.setDigitalValue(0);
     microbot.io.i2cADB1.setDigitalValue(0);
     microbot.io.i2cADB2.setDigitalValue(0);
-    //}
-    DMESG("WHOAMI: %x\r\n", distanceA.readReg(0xC0));
-    i2c_buf[0] = 0xC0;
-    microbot.i2c.write(0x52, (char*)i2c_buf, 1, true);
-    microbot.i2c.read(0x52, (char*)i2c_buf, 2, false);
-
-    DMESG("I2C read: %x, %x\r\n", i2c_buf[0], i2c_buf[1]);
-    if (i2c_buf[0]!= 0xEE) {
-        //NVIC_SystemReset();
-    }
-
-    i2c_buf[0] = VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS;
-    i2c_buf[1] = 0x54>>1;
-    microbot.i2c.write(0x52, (char*)i2c_buf, 2, false);
-
-    i2c_buf[0] = VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS;
-    i2c_buf[1] = 0x54>>1;
-    microbot.i2c.write(0x52, (char*)i2c_buf, 2, false);
-
-    //microbot.io.i2cAD1.setDigitalValue(0);
-    microbot.io.i2cADB1.setDigitalValue(1);
-
-    i2c_buf[0] = 0xC0;
-    microbot.i2c.write(0x52, (char*)i2c_buf, 1, true);
-    microbot.i2c.read(0x52, (char*)i2c_buf, 2, false);
-
-    DMESG("I2C read: %x, %x\r\n", i2c_buf[0], i2c_buf[1]);
-    if (i2c_buf[0]!= 0xEE) {
-        //NVIC_SystemReset();
-    }
-
-    //microbot.io.i2cAD1.setDigitalValue(0);
-    //microbot.io.i2cADB1.setDigitalValue(1);
-
-    i2c_buf[0] = 0xC0;
-    microbot.i2c.write(0x54, (char*)i2c_buf, 1, true);
-    microbot.i2c.read(0x54, (char*)i2c_buf, 2, false);
-
-    DMESG("I2C read: %x, %x\r\n", i2c_buf[0], i2c_buf[1]);
-    if (i2c_buf[0]!= 0xEE) {
-        //NVIC_SystemReset();
-    }
-
-    i2c_buf[0] = 0x92;
-    microbot.i2c.write(0x39<<1, (char*)i2c_buf, 1, true);
-    microbot.i2c.read(0x39<<1, (char*)i2c_buf, 1, false);
-
-    DMESG("APDS_id: %x", i2c_buf[0]);
-    if (i2c_buf[0]!= 0xAB) {
-        //NVIC_SystemReset();
-    }
     ledArray.selectFrame(1);
     ledArray.sendImage((char *)eye_16x9);
 
@@ -449,36 +290,8 @@ int main()
     
     while(1)
     {
-        //microbot.io.led.setDigitalValue(1);
-        //microbot.sleep(100);
-        //microbot.io.led.setDigitalValue(0);
-        //microbot.sleep(100);
-        
+
         microbot.sleep(1);
-        render_frame = render_frame == 1 ? 0 : render_frame + 1;
-        display_frame = display_frame == 1? 0 : display_frame + 1;
-        ledArray.displayFrame(display_frame);
-        ledArray.selectFrame(render_frame);
-        microbot.io.led.setDigitalValue(0);
-        ledArray.renderPlasma(i * 0.05);
-        i++;
 
-        for(int i = 0; i < 4; i++) {
-            microbot.apa_spi.write(0x00);
-        }
-        microbot.apa_spi.write(0xE1);
-        microbot.apa_spi.write(ledArray.is31_frame_buffer[3]>>0);
-        microbot.apa_spi.write(ledArray.is31_frame_buffer[5]>>0);
-        microbot.apa_spi.write(ledArray.is31_frame_buffer[7]>>0);
-
-        microbot.apa_spi.write(0xE1);
-        microbot.apa_spi.write(ledArray.is31_frame_buffer[9]>>0);
-        microbot.apa_spi.write(ledArray.is31_frame_buffer[11]>>0);
-        microbot.apa_spi.write(ledArray.is31_frame_buffer[13]>>0);
-        for (int i = 0; i < 4; i++) {
-            microbot.apa_spi.write(0xFF);
-        }
-        
-        //ble.waitForEvent();
     }
 }
