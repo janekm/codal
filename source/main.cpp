@@ -342,6 +342,10 @@ void buttonCallback(Event evt)
     } else if (evt.value == 2) {
     }        
     }
+    if (evt.value == 13) snake_direction = 2;
+    if (evt.value == 15) snake_direction = 0;
+    if (evt.value == 9) snake_direction = 3;
+    if (evt.value == 11) snake_direction = 1;
 }
 
 int main()
@@ -358,6 +362,8 @@ int main()
     microbot.messageBus.listen(DEVICE_ID_SCHEDULER, DEVICE_SCHEDULER_EVT_IDLE, &idleCallback, MESSAGE_BUS_LISTENER_IMMEDIATE);
     microbot.messageBus.listen(DEVICE_ID_BUTTON_A, DEVICE_EVT_ANY, &buttonCallback);
     microbot.messageBus.listen(DEVICE_ID_BUTTON_B, DEVICE_EVT_ANY, &buttonCallback);
+    microbot.messageBus.listen(1104, DEVICE_EVT_ANY, &buttonCallback);
+    
     blei.init(bleInitComplete);
     
     /* SpinWait for initialization to complete. This is necessary because the
